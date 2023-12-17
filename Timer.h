@@ -11,7 +11,7 @@ private:
 	__int64 m_currentTime{ 0 };
 	__int64 m_lastTime{ 0 };
 	__int64 m_performanceFrequency{ 0 };
-	float m_frameTime[MAX_SAMPLE_COUNT]{};
+	float m_frameTime[MAX_SAMPLE_COUNT]{ 0.f, };
 
 	ULONG m_sampleCount{ 0 };
 	ULONG m_currentFrameRate{ 0 };
