@@ -51,7 +51,7 @@ private:
 	// Lock(Mutex) 변수가 필요하다. Fence 가 그 역할.
 	// Fence 를 생성하면 GPU가 n번째 프레임의 처리를 마치기 전에 CPU가 n+1번째 프레임의 처리를 하지 못하도록 막는다.
 	ID3D12Fence* m_d3dFence{ nullptr };
-	UINT64 m_fenceValue{ 0 }; // 펜스 값 ( 몇 번째 프레임을 처리중인지 저장 ) 
+	UINT64 m_fenceValue{ 0 }; // 펜스 값 ( 몇 번째 프레임을 처리중인지 저장 -> 2^64 의 크기이므로 overflow 될 일이 없다) 
 	/*
 	* 이벤트 핸들러를 이해하기 위해 커널 기반 동기화에 대해 알아야함 
 	* 생산자-소비자 패턴을 생각해보자 
@@ -75,6 +75,36 @@ private:
 	// 따라서 대부분의 경우 뷰포트와 같은 크기로 정의한다 
 	// CommandList 가 Clear 될 때마다 새로 정의해 주어야 한다 
 	D3D12_RECT m_d3dSissorRect{}; 
+
+public:
+
+	Engine();
+	~Engine();
+
+	// Create Engine( DX12 Device ) 
+	bool Initialize(HINSTANCE Instance, HWND MainWindowHandle);
+	void Terminate();
+
+
+private:
+	// Device Initialize 
+	void CreateSwapChain();
+	void CreateDirect3DDevice();
+	void CreateRenderTargetAndDepthStencilDescriptorHeaps();
+	void CreateCommandQueueAndList();
+	void CreateRenderTargetView();
+	void CreateDepthStencilView();
+
+	// Get a sync with Gpu 
+	void WaitForGpuComplete();
+	
+	void ChangeSwapChainState();
+
+
+	// Process Window Message 
+	void OnProcessMouseMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+	void OnProcessKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+	LRESULT CALLBACK OnProcessWindowMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 };
 
