@@ -4,9 +4,9 @@
 // Timer Initialize 
 Timer::Timer(){
 	
-	if (::QueryPerformanceFrequency((LARGE_INTEGER*)m_performanceFrequency)) {
+	if (::QueryPerformanceFrequency((LARGE_INTEGER*)&m_performanceFrequency)) {
 		m_hardwarePerformanceConter = true;
-		::QueryPerformanceCounter((LARGE_INTEGER*)m_lastTime);
+		::QueryPerformanceCounter((LARGE_INTEGER*)&m_lastTime);
 
 		m_timeScale = 1.f / m_performanceFrequency;
 	}
@@ -70,7 +70,7 @@ ULONG Timer::GetFrameRate(LPTSTR lpszString, int CharacterNumbers){
 	// 10자리까지 FrameRate 를 lpszString 에 쓰고, " FPS)" 와 결합한다 
 	if (lpszString) {
 		_itow_s(m_currentFrameRate, lpszString, CharacterNumbers, 10);
-		wcscat_s(lpszString, CharacterNumbers, _T(" FPS)"));
+		wcscat_s(lpszString, CharacterNumbers, _T(" FPS )"));
 	}
 	return m_currentFrameRate;
 }

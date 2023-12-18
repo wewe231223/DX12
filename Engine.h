@@ -1,13 +1,12 @@
 #pragma once
 class Timer;
-#include <atomic>
 
-std::atomic<int> a;
 
 class Engine {
 private:
 	HINSTANCE m_hInstance{};
 	HWND m_hWnd{};
+	_TCHAR m_pszFrameRate[50]{};
 
 	int m_nWindowClientWidth{ FRAMEBUFFER_WIDTH };
 	int m_nWindowClientHeight{ FRAMEBUFFER_HEIGHT };
@@ -34,12 +33,13 @@ private:
 	// 따라서 Buffer(Resource) 는 Resource 뿐만 아니라, Descriptor heap, 그리고 heap 의 크기(원소의 개수) 가 하나의 세트를 형성한다
 	ID3D12Resource* m_pd3dRenderTargetBuffers[m_nSwapChainBuffersNumber]{};// 렌더 타켓 버퍼 
 	// 렌더 타겟의 개수만큼 SwapChain buffer 생성 <==> SwapChain 의 개수만큼 RenderTarget 생성 
-	// RTV == RenderTarget
+	// RTV = Render Target View ( 여기서 View 란 넘겨준 데이터를 어떻게 바라볼 것인가, 어떻게 처리할 것인가에 대한 정보, 혹은 그러한 정보를 담은 구초제) 
 	ID3D12DescriptorHeap* m_pd3dRtvDescriptiorHeap{ nullptr }; // Descriptor Heap 인터페이스 포인터 
-	UINT m_nRtvDescriptorIncrementSize{ 0 }; // Render Target Descriptor 원소의 크기 
+	UINT m_nRtvDescriptorIncrementSize{ 0 }; // Render Target Descriptor 원소의 크기  
 
 	ID3D12Resource* m_pd3dDepthStencilBuffer{ nullptr }; // 깊이 스텐실 포인터 - 깊이 버퍼 
 	ID3D12DescriptorHeap* m_pd3dDsvDescriptorHeap{ nullptr }; // 깊이 스텐실 버퍼의 서술자 힙 인터페이스 포인터 
+	// DSV = Depth Stencil View ( 여기서의 View 도 앞과 동일하다 ) 
 	UINT m_nDsvDescriptorIncrementSize{ 0 }; // 깊이 스텐실 버퍼 서술자 원소의 크기 
 
 	ID3D12CommandQueue* m_pd3dCommandQueue{ nullptr }; // Command Queue
@@ -84,6 +84,7 @@ private:
 
 
 
+
 public:
 
 	Engine();
@@ -93,6 +94,8 @@ public:
 	bool Initialize(HINSTANCE Instance, HWND MainWindowHandle);
 	void Terminate();
 
+
+	void Render();
 
 private:
 	// Device Initialize 

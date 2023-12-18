@@ -1,8 +1,10 @@
-﻿// DX12.cpp : 애플리케이션에 대한 진입점을 정의합니다.
+// DX12.cpp : 애플리케이션에 대한 진입점을 정의합니다.
 //
 
 #include "pch.h"
 #include "DX12.h"
+#include "Engine.h"
+
 
 #define MAX_LOADSTRING 100
 
@@ -10,6 +12,7 @@
 HINSTANCE hInst;                                // 현재 인스턴스입니다.
 WCHAR szTitle[MAX_LOADSTRING];                  // 제목 표시줄 텍스트입니다.
 WCHAR szWindowClass[MAX_LOADSTRING];            // 기본 창 클래스 이름입니다.
+Engine engine{};
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -43,14 +46,24 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     MSG msg;
 
     // 기본 메시지 루프입니다:
-    while (GetMessage(&msg, nullptr, 0, 0))
+    while (1)
     {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+        if (::PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+            if (msg.message == WM_QUIT) break;
+            if (!::TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+            {
+                ::TranslateMessage(&msg);
+                ::DispatchMessage(&msg);
+            }
+        }
+        else
+        {
+            engine.Render();
         }
     }
+
+    engine.Terminate();
 
     return (int) msg.wParam;
 }
@@ -76,7 +89,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
     wcex.hIcon          = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_DX12));
     wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = MAKEINTRESOURCEW(IDC_DX12);
+    wcex.lpszMenuName = NULL;
     wcex.lpszClassName  = szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -104,12 +117,13 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
+   engine.Initialize(hInstance, hWnd);
+   ::ShowWindow(hWnd, nCmdShow);
+   ::UpdateWindow(hWnd);
 
    return TRUE;
 }
-
+    
 //
 //  함수: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -139,14 +153,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
-        }
-        break;
-    case WM_PAINT:
-        {
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hWnd, &ps);
-            // TODO: 여기에 hdc를 사용하는 그리기 코드를 추가합니다...
-            EndPaint(hWnd, &ps);
         }
         break;
     case WM_DESTROY:
