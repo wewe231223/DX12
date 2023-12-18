@@ -23,7 +23,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-
+#include <iostream>
 
 
 #include "Math.h"
@@ -42,6 +42,9 @@ using Microsoft::WRL::ComPtr;
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
+
+// Create Console Log 
+#pragma comment(linker, "/entry:wWinMainCRTStartup /subsystem:console")
 
 #define FRAMEBUFFER_WIDTH 1200
 #define FRAMEBUFFER_HEIGHT 800
