@@ -1,57 +1,61 @@
 #pragma once
+class Timer;
 
 
 class Engine {
 private:
 	HINSTANCE m_hInstance{};
 	HWND m_hWnd{};
+	_TCHAR m_pszFrameRate[50]{};
 
-	int m_hWndClientWidth{ FRAMEBUFFER_WIDTH };
-	int m_hWndClientHeight{ FRAMEBUFFER_HEIGHT };
+	int m_nWindowClientWidth{ FRAMEBUFFER_WIDTH };
+	int m_nWindowClientHeight{ FRAMEBUFFER_HEIGHT };
 
 
 	// DXGI == DirectX Graphics Interface 
-	IDXGIFactory4* m_dxgiFactory{ nullptr }; // DXGI 팩토리 포인터 
-	IDXGISwapChain3* m_dxgiSwapChain{ nullptr }; // DXGI 스왑 체인 포인터 
-	ID3D12Device* m_d3dDevice{ nullptr }; // DirectX 디바이스 포인터 
+	IDXGIFactory4* m_pdxgiFactory{ nullptr }; // DXGI 팩토리 포인터 
+	IDXGISwapChain3* m_pdxgiSwapChain{ nullptr }; // DXGI 스왑 체인 포인터 
+	ID3D12Device* m_pd3dDevice{ nullptr }; // DirectX 디바이스 포인터 
 
 
-	bool m_msaa4xEnable{ false }; // 다중 샘플링 MSAA 활성화 ( Multi-Sampling-Anti-Aliasing ) 
-	UINT m_msaa4xQualityLevels{ 0 }; // MSAA 레벨 
+	bool m_bMsaa4xEnable{ false }; // 다중 샘플링 MSAA 활성화 ( Multi-Sampling-Anti-Aliasing ) 
+	UINT m_nMsaa4xQualityLevels{ 0 }; // MSAA 레벨 
 	
 
-	static const UINT m_swapChainBuffersNumber{ 2 }; // 후면 버퍼 개수 
-	UINT m_swapChainBufferIndex{ 0 }; // 현재 후면 버퍼 인덱스 
+	static const UINT m_nSwapChainBuffersNumber{ 2 }; // 후면 버퍼 개수 
+	UINT m_nSwapChainBufferIndex{ 0 }; // 현재 후면 버퍼 인덱스 
+
 
 
 	// Resource <=> Descriptor 은 쌍으로 붙음 
 	// Resource 는 버퍼의 개념 == > 프로그래밍 단계의 버퍼 
 	// Descriptor 은 GPU에 전해주기 위한 버퍼를 데이터 블록으로 만든 것 => Resource 의 내용을 GPU에 서술한다( 서술자 ) 
 	// 따라서 Buffer(Resource) 는 Resource 뿐만 아니라, Descriptor heap, 그리고 heap 의 크기(원소의 개수) 가 하나의 세트를 형성한다
-	ID3D12Resource* m_d3dRenderTragetBuffers[m_swapChainBuffersNumber]{};// 렌더 타켓 버퍼 
+	ID3D12Resource* m_pd3dRenderTargetBuffers[m_nSwapChainBuffersNumber]{};// 렌더 타켓 버퍼 
 	// 렌더 타겟의 개수만큼 SwapChain buffer 생성 <==> SwapChain 의 개수만큼 RenderTarget 생성 
-	// RTV == RenderTarget
-	ID3D12DescriptorHeap* m_d3dRtvDescriptorHeap{ nullptr }; // Descriptor Heap 인터페이스 포인터 
-	UINT m_rtvDescriptorIncrementSize{ 0 }; // Render Target Descriptor 원소의 크기 
+	// RTV = Render Target View ( 여기서 View 란 넘겨준 데이터를 어떻게 바라볼 것인가, 어떻게 처리할 것인가에 대한 정보, 혹은 그러한 정보를 담은 구초제) 
+	ID3D12DescriptorHeap* m_pd3dRtvDescriptiorHeap{ nullptr }; // Descriptor Heap 인터페이스 포인터 
+	UINT m_nRtvDescriptorIncrementSize{ 0 }; // Render Target Descriptor 원소의 크기  
 
-	ID3D12Resource* m_d3dDepthStencilBuffer{ nullptr }; // 깊이 스텐실 포인터 - 깊이 버퍼 
-	ID3D12DescriptorHeap* m_d3dDsvDescriptorHeap{ nullptr }; // 깊이 스텐실 버퍼의 서술자 힙 인터페이스 포인터 
-	UINT m_dsvDescriptorIncrementSize{ 0 }; // 깊이 스텐실 버퍼 서술자 원소의 크기 
+	ID3D12Resource* m_pd3dDepthStencilBuffer{ nullptr }; // 깊이 스텐실 포인터 - 깊이 버퍼 
+	ID3D12DescriptorHeap* m_pd3dDsvDescriptorHeap{ nullptr }; // 깊이 스텐실 버퍼의 서술자 힙 인터페이스 포인터 
+	// DSV = Depth Stencil View ( 여기서의 View 도 앞과 동일하다 ) 
+	UINT m_nDsvDescriptorIncrementSize{ 0 }; // 깊이 스텐실 버퍼 서술자 원소의 크기 
 
-	ID3D12CommandQueue* m_d3dCommandQueue{ nullptr }; // Command Queue
-	ID3D12CommandAllocator* m_d3dCommandAllocator{ nullptr }; // 커맨드 큐의 명령 할당자 
-	ID3D12GraphicsCommandList* m_d3dCommandList{ nullptr }; // 명령 리스트 인터페이스 포인터 
+	ID3D12CommandQueue* m_pd3dCommandQueue{ nullptr }; // Command Queue
+	ID3D12CommandAllocator* m_pd3dCommandAllocator{ nullptr }; // 커맨드 큐의 명령 할당자 
+	ID3D12GraphicsCommandList* m_pd3dCommandList{ nullptr }; // 명령 리스트 인터페이스 포인터 
 
 	// DirectX 의 Pipeline 은 상태기계(State Machine) 이다 
 	// 따라서 State를 담을 변수가 필요함
-	ID3D12PipelineState* m_d3dPipelineState{ nullptr };
+	ID3D12PipelineState* m_pd3dPipelineState{ nullptr };
 
 	// CPU와 GPU는 독자적으로 행동한다 
 	// 이를 멀티코어 프로그래밍( 멀티쓰레드 ) 의 관점으로 보면
 	// Lock(Mutex) 변수가 필요하다. Fence 가 그 역할.
 	// Fence 를 생성하면 GPU가 n번째 프레임의 처리를 마치기 전에 CPU가 n+1번째 프레임의 처리를 하지 못하도록 막는다.
-	ID3D12Fence* m_d3dFence{ nullptr };
-	UINT64 m_fenceValue{ 0 }; // 펜스 값 ( 몇 번째 프레임을 처리중인지 저장 -> 2^64 의 크기이므로 overflow 될 일이 없다) 
+	ID3D12Fence* m_pd3dFence{ nullptr };
+	UINT64 m_nFenceValue{ 0 }; // 펜스 값 ( 몇 번째 프레임을 처리중인지 저장 -> 2^64 의 크기이므로 overflow 될 일이 없다) 
 	/*
 	* 이벤트 핸들러를 이해하기 위해 커널 기반 동기화에 대해 알아야함 
 	* 생산자-소비자 패턴을 생각해보자 
@@ -64,10 +68,10 @@ private:
 	* 소비자는 준비된 버퍼를 가져가 일을 시작한다.
 	* 
 	*/
-	HANDLE m_fenceEvent{}; // 펜스 이벤트 핸들러 
+	HANDLE m_hFenceEvent{}; // 펜스 이벤트 핸들러 
 
 #if defined(_DEBUG)
-	ID3D12Debug* m_d3dDebugController{ nullptr };
+	ID3D12Debug* m_pd3dDebugController{ nullptr };
 #endif // !defined(_DEBUG)
 	D3D12_VIEWPORT m_d3dViewPort{}; // 뷰포트
 
@@ -75,6 +79,11 @@ private:
 	// 따라서 대부분의 경우 뷰포트와 같은 크기로 정의한다 
 	// CommandList 가 Clear 될 때마다 새로 정의해 주어야 한다 
 	D3D12_RECT m_d3dSissorRect{}; 
+
+	std::unique_ptr<Timer> m_timer{};
+
+
+
 
 public:
 
@@ -85,6 +94,8 @@ public:
 	bool Initialize(HINSTANCE Instance, HWND MainWindowHandle);
 	void Terminate();
 
+
+	void Render();
 
 private:
 	// Device Initialize 
