@@ -2,6 +2,7 @@
 #include "Engine.h"
 #include "Timer.h"
 
+#pragma warning(disable:6387)
 
 #define _WITH_SWAPCHAIN_FULLSCREEN_STATE // 전체화면 
 
@@ -292,6 +293,7 @@ void Engine::CreateCommandQueueAndList(){
 	// 커맨드 리스트 생성 ( 명령을 직접 전달 )
 	hResult = m_pd3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pd3dCommandAllocator, NULL, __uuidof(ID3D12GraphicsCommandList), (void**)&m_pd3dCommandList);
 	
+
 	// 커맨드 리스트는 생성 시 열린 상태이므로( Open ) 닫아주어야 한다.  
 	hResult = m_pd3dCommandList->Close();
 }
