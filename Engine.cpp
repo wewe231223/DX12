@@ -89,15 +89,16 @@ void Engine::Render(){
 	m_pd3dCommandList->ResourceBarrier(1, &D3dResourceBarrier);
 
 
+	m_pd3dCommandList->RSSetViewports(1, &m_d3dViewPort);
+	m_pd3dCommandList->RSSetScissorRects(1, &m_d3dSissorRect);
+
+
 	// 현재 렌더 타겟에 해당하는 서술자의 CPU 핸들러를 계산한다 
 	D3D12_CPU_DESCRIPTOR_HANDLE D3dRtvCPUDescriptorHandle = m_pd3dRtvDescriptiorHeap->GetCPUDescriptorHandleForHeapStart();
 	D3dRtvCPUDescriptorHandle.ptr += (m_nSwapChainBufferIndex * m_nRtvDescriptorIncrementSize);
 
 	// 현재 깊이 스텐실 서술자의 CPU 핸들러를 계산한다 
 	D3D12_CPU_DESCRIPTOR_HANDLE D3dDsvCPUDescriptorHandle = m_pd3dDsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-
-	// 렌더 타겟 뷰(서술자)와 깊이 스텐실 뷰(서술자) 를 출력-병합 단계에 연결한다 
-	m_pd3dCommandList->OMSetRenderTargets(1, &D3dRtvCPUDescriptorHandle, TRUE, &D3dDsvCPUDescriptorHandle);
 
 
 	// 렌더 타켓 뷰를 지정한 색으로 클리어한다 
@@ -106,6 +107,9 @@ void Engine::Render(){
 
 	// 깊이 스텐실 뷰도 클리어 한다 
 	m_pd3dCommandList->ClearDepthStencilView(D3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
+
+	// 렌더 타겟 뷰(서술자)와 깊이 스텐실 뷰(서술자) 를 출력-병합 단계에 연결한다 
+	m_pd3dCommandList->OMSetRenderTargets(1, &D3dRtvCPUDescriptorHandle, TRUE, &D3dDsvCPUDescriptorHandle);
 
 
 	/*
@@ -136,7 +140,7 @@ void Engine::Render(){
 	// 이제 SwapChain 을 Present한다. 렌더 타겟(후면 버퍼)의 내용이 전면 버퍼로 이동하고, 렌더 타겟 인덱스가 바뀔 것이다.
 	m_pdxgiSwapChain->Present(0, 0);
 
-	
+	MovetoNextFrame();
 
 	m_timer->GetFrameRate(m_pszFrameRate + 10, 35);
 	::SetWindowText(m_hWnd, m_pszFrameRate);
@@ -354,15 +358,27 @@ void Engine::CreateDepthStencilView(){
 
 void Engine::WaitForGpuComplete(){
 	// CPU Fence 의 값을 증가시킨다
-	m_nFenceValue++;
-
 	// Gpu가 Fence의 값을 설정하는 명령을 큐에 추가한다. 
-	const UINT64 nFence = m_nFenceValue;
+	UINT64 nFence = ++m_nFenceValue[m_nSwapChainBufferIndex];
 	HRESULT hResult = m_pd3dCommandQueue->Signal(m_pd3dFence, nFence);
 
 	if (m_pd3dFence->GetCompletedValue() < nFence) {
 		//펜스의 현재 값이 CPU Fence 값 보다 작으면 펜스의 현재 값이 CPU Fence 값이 될 때까지 기다린다.
 		hResult = m_pd3dFence->SetEventOnCompletion(nFence, m_hFenceEvent);
+		::WaitForSingleObject(m_hFenceEvent, INFINITE);
+	}
+
+}
+
+void Engine::MovetoNextFrame(){
+	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
+
+	UINT64 FenceValue = ++m_nFenceValue[m_nSwapChainBufferIndex];
+	HRESULT hResult = m_pd3dCommandQueue->Signal(m_pd3dFence, FenceValue);
+
+		
+	if (m_pd3dFence->GetCompletedValue() < FenceValue) {
+		hResult = m_pd3dFence->SetEventOnCompletion(FenceValue, m_hFenceEvent);
 		::WaitForSingleObject(m_hFenceEvent, INFINITE);
 	}
 

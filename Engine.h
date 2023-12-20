@@ -55,7 +55,7 @@ private:
 	// Lock(Mutex) 변수가 필요하다. Fence 가 그 역할.
 	// Fence 를 생성하면 GPU가 n번째 프레임의 처리를 마치기 전에 CPU가 n+1번째 프레임의 처리를 하지 못하도록 막는다.
 	ID3D12Fence* m_pd3dFence{ nullptr };
-	UINT64 m_nFenceValue{ 0 }; // 펜스 값 ( 몇 번째 프레임을 처리중인지 저장 -> 2^64 의 크기이므로 overflow 될 일이 없다) 
+	UINT64 m_nFenceValue[m_nSwapChainBuffersNumber]{ 0, }; // 펜스 값 ( 몇 번째 프레임을 처리중인지 저장 -> 2^64 의 크기이므로 overflow 될 일이 없다) 
 	/*
 	* 이벤트 핸들러를 이해하기 위해 커널 기반 동기화에 대해 알아야함 
 	* 생산자-소비자 패턴을 생각해보자 
@@ -108,7 +108,8 @@ private:
 
 	// Get a sync with Gpu 
 	void WaitForGpuComplete();
-	
+	void MovetoNextFrame();
+
 	void ChangeSwapChainState();
 
 
