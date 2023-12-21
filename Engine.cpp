@@ -140,6 +140,16 @@ void Engine::Render(){
 	// 이제 SwapChain 을 Present한다. 렌더 타겟(후면 버퍼)의 내용이 전면 버퍼로 이동하고, 렌더 타겟 인덱스가 바뀔 것이다.
 	m_pdxgiSwapChain->Present(0, 0);
 
+	// Discussion : 혹시 다른 의견이나 틀린점이 있다면 추가바람 
+	// 
+	// 이 함수가 하는 일은 사실 WaitforGPUComplete 와 비슷하다.
+	// 그 이유는 현재 시스템은 SwapChain 을 2개 즉 후면버퍼가 두개로 3중 버퍼링을 수행중이기 때문에
+	// 한번의 프레임 렌더링에 두번의 Buffer를 기다려야한다 
+	// 참고자료 : https://www.3dgep.com/wp-content/uploads/2017/11/GPU-Synchronization.png
+	// 쉽게 생각해서 한번의 렌더링 과정 중에 모든 swapchain이 처리되어야 하므로,
+	// 두번 기다려주는것 
+
+
 	MovetoNextFrame();
 
 	m_timer->GetFrameRate(m_pszFrameRate + 10, 35);
@@ -369,6 +379,9 @@ void Engine::WaitForGpuComplete(){
 	}
 
 }
+
+
+
 
 void Engine::MovetoNextFrame(){
 	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
