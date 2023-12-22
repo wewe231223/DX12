@@ -135,6 +135,7 @@
   <ItemGroup>
     <ClInclude Include="DX12.h" />
     <ClInclude Include="Engine.h" />
+    <ClInclude Include="Input.h" />
     <ClInclude Include="Math.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
@@ -145,6 +146,7 @@
   <ItemGroup>
     <ClCompile Include="DX12.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="Input.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="Math.cpp" />
