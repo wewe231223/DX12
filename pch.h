@@ -25,7 +25,9 @@
 #include <memory>
 #include <iostream>
 #include <array>
+#include <cassert>
 
+#include "resource.h"
 #include "Math.h"
 
 

@@ -2,11 +2,12 @@
 class Timer;
 
 
+
 class Engine {
 private:
 	HINSTANCE m_hInstance{};
 	HWND m_hWnd{};
-	_TCHAR m_pszFrameRate[50]{};
+	_TCHAR m_pszFrameRate[100]{};
 
 	int m_nWindowClientWidth{ FRAMEBUFFER_WIDTH };
 	int m_nWindowClientHeight{ FRAMEBUFFER_HEIGHT };
@@ -91,11 +92,14 @@ public:
 	~Engine();
 
 	// Create Engine( DX12 Device ) 
-	bool Initialize(HINSTANCE Instance, HWND MainWindowHandle);
+	bool Initialize(HINSTANCE Instance,int Cmd);
 	void Terminate();
-
+	void Loop();
 
 	void Render();
+public:
+
+	static LRESULT __stdcall Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 private:
 	// Device Initialize 

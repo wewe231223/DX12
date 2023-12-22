@@ -3,8 +3,11 @@
 #include "Timer.h"
 
 #pragma warning(disable:6387)
-
 #define _WITH_SWAPCHAIN_FULLSCREEN_STATE // 전체화면 
+
+static HWND hWnd{};
+
+
 
 Engine::Engine(){
 	for (int i = 0; i < m_nSwapChainBuffersNumber; i++) {
@@ -18,9 +21,48 @@ Engine::Engine(){
 Engine::~Engine(){
 }
 
-bool Engine::Initialize(HINSTANCE Instance, HWND MainWindowHandle) {
+bool Engine::Initialize(HINSTANCE Instance,int Cmd) {
+
+	WCHAR Windowclass[100]{};
+	WCHAR WindowTitle[100]{};
+	LoadStringW(m_hInstance, IDC_DX12, Windowclass, 100);
+	LoadStringW(m_hInstance, IDS_APP_TITLE, WindowTitle, 100);
+
 	m_hInstance = Instance;
-	m_hWnd = MainWindowHandle;
+
+	WNDCLASSEXW wcex{};
+	::ZeroMemory(&wcex, sizeof(WNDCLASSEXW));
+
+	wcex.cbSize = sizeof(WNDCLASSEXW);
+
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc = Engine::Proc;
+	wcex.cbClsExtra = 0;
+	wcex.cbWndExtra = 0;
+	wcex.hInstance = m_hInstance;
+	wcex.hIcon = LoadIcon(m_hInstance, MAKEINTRESOURCE(IDI_DX12));
+	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.lpszMenuName = NULL;
+	wcex.lpszClassName = Windowclass;
+	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+
+
+
+	RegisterClassExW(&wcex);
+
+	hWnd = CreateWindowW(Windowclass, WindowTitle, WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, Instance, nullptr);
+	
+
+	if (!hWnd) {
+		exit(EXIT_FAILURE);
+	}
+
+
+	::ShowWindow(hWnd, Cmd);
+	::UpdateWindow(hWnd);
+
 
 
 	CreateDirect3DDevice();
@@ -59,6 +101,36 @@ void Engine::Terminate(){
 	if (m_pdxgiFactory)		m_pdxgiFactory->Release();
 	if (m_pd3dDevice)		m_pd3dDevice->Release();
 	
+}
+
+void Engine::Loop(){
+	HACCEL hAccelTable = LoadAccelerators(m_hInstance, MAKEINTRESOURCE(IDC_DX12));
+
+
+	MSG message{};
+
+
+	while (true) {
+
+		if (::PeekMessage(&message, NULL, 0, 0, PM_REMOVE))
+		{
+			if (message.message == WM_QUIT) break;
+			if (!::TranslateAccelerator(message.hwnd, hAccelTable, &message))
+			{
+				::TranslateMessage(&message);
+				::DispatchMessage(&message);
+			}
+		}
+		else
+		{
+			Render();
+		}
+
+
+	}
+
+
+
 }
 
 void Engine::Render(){
@@ -153,14 +225,42 @@ void Engine::Render(){
 	MovetoNextFrame();
 
 	m_timer->GetFrameRate(m_pszFrameRate + 10, 35);
-	::SetWindowText(m_hWnd, m_pszFrameRate);
+	::SetWindowText(hWnd, m_pszFrameRate);
 
 	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
 }
 
+LRESULT __stdcall Engine::Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message){
+	case WM_COMMAND:
+	{
+		int wmId = LOWORD(wParam);
+		// 메뉴 선택을 구문 분석합니다:
+		switch (wmId)
+		{
+		case IDM_ABOUT:
+			break;
+		case IDM_EXIT:
+			DestroyWindow(hWnd);
+			break;
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		}
+	}
+	break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return 0;
+}
+
 void Engine::CreateSwapChain(){
 	RECT ClientRect{};
-	::GetClientRect(m_hWnd, &ClientRect);
+	::GetClientRect(hWnd, &ClientRect);
 
 
 	m_nWindowClientWidth = ClientRect.right - ClientRect.left;
@@ -177,7 +277,7 @@ void Engine::CreateSwapChain(){
 	DxgiSwapChainDesc.BufferDesc.Format						= DXGI_FORMAT_R8G8B8A8_UNORM;
 	DxgiSwapChainDesc.BufferUsage							= DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	DxgiSwapChainDesc.SwapEffect							= DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	DxgiSwapChainDesc.OutputWindow							= m_hWnd;
+	DxgiSwapChainDesc.OutputWindow							= hWnd;
 	DxgiSwapChainDesc.SampleDesc.Count						= (m_bMsaa4xEnable) ? 4 : 1;
 	DxgiSwapChainDesc.SampleDesc.Quality					= (m_bMsaa4xEnable) ? m_nMsaa4xQualityLevels - 1 : 0;
 	DxgiSwapChainDesc.Windowed								= true;
@@ -188,7 +288,7 @@ void Engine::CreateSwapChain(){
 	HRESULT hResult = m_pdxgiFactory->CreateSwapChain(m_pd3dCommandQueue, &DxgiSwapChainDesc, (IDXGISwapChain**)&m_pdxgiSwapChain);
 	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
 	// ALT+ENTER 가 작동하지 않도록 변경 
-	hResult = m_pdxgiFactory->MakeWindowAssociation(m_hWnd, DXGI_MWA_NO_ALT_ENTER);
+	hResult = m_pdxgiFactory->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
 
 #ifndef _WITH_SWAPCHAIN_FULLSCREEN_STATE
 	CreateRenderTargetView();
