@@ -73,6 +73,8 @@ bool Engine::Initialize(HINSTANCE Instance,int Cmd) {
 	CreateDepthStencilView();
 
 	m_timer = std::make_unique<Timer>();
+	INPUT->Init();
+
 
 	return false;
 }
@@ -118,6 +120,10 @@ void Engine::Loop(){
 			}
 		}
 		else{
+			// Game Loop 
+			Update();
+
+
 			Render();
 		}
 
@@ -129,8 +135,6 @@ void Engine::Loop(){
 }
 
 void Engine::Render(){
-	m_timer->Tick(0.f);
-	
 	// 명령 할당자와 명령 리스트를 초기화한다 
 	// => 이전 프레임의 그리기 명령과 그 명령 할당자를 초기화 해야 한다 
 	HRESULT hResult = m_pd3dCommandAllocator->Reset();
@@ -223,6 +227,19 @@ void Engine::Render(){
 	::SetWindowText(hWnd, m_pszFrameRate);
 
 	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
+}
+
+void Engine::Update(){
+
+	m_timer->Tick(0.f);
+
+	INPUT->Update();
+
+
+
+}
+
+void Engine::LateUpdate(){
 }
 
 LRESULT __stdcall Engine::Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

@@ -3,6 +3,14 @@
 #include "pch.h"
 #include "DX12.h"
 #include "Engine.h"
+std::unique_ptr<Engine> engine{ nullptr };
+
+void ProgramClose(){
+    engine->Terminate();
+    exit(0);
+}
+
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPWSTR    lpCmdLine,
@@ -10,11 +18,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
     std::cout << "Hello World" << std::endl;
-    std::unique_ptr<Engine> engine = std::make_unique<Engine>();
+    engine = std::make_unique<Engine>();
     engine->Initialize(hInstance, nCmdShow);
     engine->Loop();
     engine->Terminate();
     return 0;
 }
-
 

@@ -97,6 +97,9 @@ public:
 	void Loop();
 
 	void Render();
+	void Update();
+	void LateUpdate();
+
 public:
 
 	static LRESULT __stdcall Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
