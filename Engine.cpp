@@ -105,24 +105,19 @@ void Engine::Terminate(){
 
 void Engine::Loop(){
 	HACCEL hAccelTable = LoadAccelerators(m_hInstance, MAKEINTRESOURCE(IDC_DX12));
-
-
 	MSG message{};
 
 
 	while (true) {
 
-		if (::PeekMessage(&message, NULL, 0, 0, PM_REMOVE))
-		{
+		if (::PeekMessage(&message, NULL, 0, 0, PM_REMOVE)){
 			if (message.message == WM_QUIT) break;
-			if (!::TranslateAccelerator(message.hwnd, hAccelTable, &message))
-			{
+			if (!::TranslateAccelerator(message.hwnd, hAccelTable, &message)){
 				::TranslateMessage(&message);
 				::DispatchMessage(&message);
 			}
 		}
-		else
-		{
+		else{
 			Render();
 		}
 
