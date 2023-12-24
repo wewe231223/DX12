@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Engine.h"
 #include "Timer.h"
+#include "Input.h"
 
 #pragma warning(disable:6387)
 #define _WITH_SWAPCHAIN_FULLSCREEN_STATE // 전체화면 
@@ -73,7 +74,7 @@ bool Engine::Initialize(HINSTANCE Instance,int Cmd) {
 	CreateDepthStencilView();
 
 	m_timer = std::make_unique<Timer>();
-	INPUT->Init();
+	INPUT->Init(hWnd,m_hInstance);
 
 
 	return false;
