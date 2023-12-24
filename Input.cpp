@@ -113,42 +113,28 @@ void Input::Update() {
 	}
 
 
+	for (UINT i = 0; i < 256; ++i) {
+		if (Keystate[i] & 0x80) {
+			if (m_keyboardState[i] == KEY_STATE::NONE or m_keyboardState[i] == KEY_STATE::RELEASE) {
+				m_keyboardState[i] = KEY_STATE::DOWN;
+				printf("%c\n", (char)i);
+			}
+			else if (m_keyboardState[i] == KEY_STATE::DOWN) {
+				m_keyboardState[i] = KEY_STATE::PRESS;
+			}
+		}
+		else {
+			if (m_keyboardState[i] == KEY_STATE::PRESS or m_keyboardState[i] == KEY_STATE::DOWN) {
+				m_keyboardState[i] = KEY_STATE::RELEASE;
+			}
+			else if (m_keyboardState[i] == KEY_STATE::RELEASE) {
+				m_keyboardState[i] = KEY_STATE::NONE;
+			}
+		}
+	}
+	
+	
 
-
-
-
-
-	//BYTE temp[256]{ };
-	//if (!GetKeyboardState(temp)) {
-	//	exit(EXIT_FAILURE);
-	//}
-
-	//if (temp[VK_ESCAPE] & 0x80) {
-	//	ProgramClose();
-	//}
-
-
-	// 
-
-
-	//for (auto i = 0; i < 256; ++i) {
-	//	if (temp[i] & 0x80) {
-	//		if (m_keyboardState[i] == KEY_STATE::NONE or m_keyboardState[i] == KEY_STATE::RELEASE) {
-	//			m_keyboardState[i] = KEY_STATE::DOWN;
-	//		}
-	//		else if (m_keyboardState[i] == KEY_STATE::DOWN) {
-	//			m_keyboardState[i] = KEY_STATE::PRESS;
-	//		}
-	//	}
-	//	else {
-	//		if (m_keyboardState[i] == KEY_STATE::PRESS or m_keyboardState[i] == KEY_STATE::DOWN) {
-	//			m_keyboardState[i] = KEY_STATE::RELEASE;
-	//		}
-	//		else if (m_keyboardState[i] == KEY_STATE::RELEASE) {
-	//			m_keyboardState[i] = KEY_STATE::NONE;
-	//		}
-	//	}
-	//}
 
 }
 
