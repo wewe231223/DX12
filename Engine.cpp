@@ -1,9 +1,14 @@
 #include "pch.h"
 #include "Engine.h"
 #include "Timer.h"
+#include "Input.h"
 
-
+#pragma warning(disable:6387)
 #define _WITH_SWAPCHAIN_FULLSCREEN_STATE // 전체화면 
+
+static HWND hWnd{};
+
+
 
 Engine::Engine(){
 	for (int i = 0; i < m_nSwapChainBuffersNumber; i++) {
@@ -17,9 +22,48 @@ Engine::Engine(){
 Engine::~Engine(){
 }
 
-bool Engine::Initialize(HINSTANCE Instance, HWND MainWindowHandle) {
+bool Engine::Initialize(HINSTANCE Instance,int Cmd) {
+
+	WCHAR Windowclass[100]{};
+	WCHAR WindowTitle[100]{};
+	LoadStringW(m_hInstance, IDC_DX12, Windowclass, 100);
+	LoadStringW(m_hInstance, IDS_APP_TITLE, WindowTitle, 100);
+
 	m_hInstance = Instance;
-	m_hWnd = MainWindowHandle;
+
+	WNDCLASSEXW wcex{};
+	::ZeroMemory(&wcex, sizeof(WNDCLASSEXW));
+
+	wcex.cbSize = sizeof(WNDCLASSEXW);
+
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc = Engine::Proc;
+	wcex.cbClsExtra = 0;
+	wcex.cbWndExtra = 0;
+	wcex.hInstance = m_hInstance;
+	wcex.hIcon = LoadIcon(m_hInstance, MAKEINTRESOURCE(IDI_DX12));
+	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.lpszMenuName = NULL;
+	wcex.lpszClassName = Windowclass;
+	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+
+
+
+	RegisterClassExW(&wcex);
+
+	hWnd = CreateWindowW(Windowclass, WindowTitle, WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, Instance, nullptr);
+	
+
+	if (!hWnd) {
+		exit(EXIT_FAILURE);
+	}
+
+
+	::ShowWindow(hWnd, Cmd);
+	::UpdateWindow(hWnd);
+
 
 
 	CreateDirect3DDevice();
@@ -30,6 +74,8 @@ bool Engine::Initialize(HINSTANCE Instance, HWND MainWindowHandle) {
 	CreateDepthStencilView();
 
 	m_timer = std::make_unique<Timer>();
+	INPUT->Init(hWnd,m_hInstance);
+
 
 	return false;
 }
@@ -60,9 +106,36 @@ void Engine::Terminate(){
 	
 }
 
+void Engine::Loop(){
+	HACCEL hAccelTable = LoadAccelerators(m_hInstance, MAKEINTRESOURCE(IDC_DX12));
+	MSG message{};
+
+
+	while (true) {
+
+		if (::PeekMessage(&message, NULL, 0, 0, PM_REMOVE)){
+			if (message.message == WM_QUIT) break;
+			if (!::TranslateAccelerator(message.hwnd, hAccelTable, &message)){
+				::TranslateMessage(&message);
+				::DispatchMessage(&message);
+			}
+		}
+		else{
+			// Game Loop 
+			Update();
+
+
+			Render();
+		}
+
+
+	}
+
+
+
+}
+
 void Engine::Render(){
-	m_timer->Tick(0.f);
-	
 	// 명령 할당자와 명령 리스트를 초기화한다 
 	// => 이전 프레임의 그리기 명령과 그 명령 할당자를 초기화 해야 한다 
 	HRESULT hResult = m_pd3dCommandAllocator->Reset();
@@ -88,15 +161,16 @@ void Engine::Render(){
 	m_pd3dCommandList->ResourceBarrier(1, &D3dResourceBarrier);
 
 
+	m_pd3dCommandList->RSSetViewports(1, &m_d3dViewPort);
+	m_pd3dCommandList->RSSetScissorRects(1, &m_d3dSissorRect);
+
+
 	// 현재 렌더 타겟에 해당하는 서술자의 CPU 핸들러를 계산한다 
 	D3D12_CPU_DESCRIPTOR_HANDLE D3dRtvCPUDescriptorHandle = m_pd3dRtvDescriptiorHeap->GetCPUDescriptorHandleForHeapStart();
 	D3dRtvCPUDescriptorHandle.ptr += (m_nSwapChainBufferIndex * m_nRtvDescriptorIncrementSize);
 
 	// 현재 깊이 스텐실 서술자의 CPU 핸들러를 계산한다 
 	D3D12_CPU_DESCRIPTOR_HANDLE D3dDsvCPUDescriptorHandle = m_pd3dDsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-
-	// 렌더 타겟 뷰(서술자)와 깊이 스텐실 뷰(서술자) 를 출력-병합 단계에 연결한다 
-	m_pd3dCommandList->OMSetRenderTargets(1, &D3dRtvCPUDescriptorHandle, TRUE, &D3dDsvCPUDescriptorHandle);
 
 
 	// 렌더 타켓 뷰를 지정한 색으로 클리어한다 
@@ -105,6 +179,9 @@ void Engine::Render(){
 
 	// 깊이 스텐실 뷰도 클리어 한다 
 	m_pd3dCommandList->ClearDepthStencilView(D3dDsvCPUDescriptorHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, NULL);
+
+	// 렌더 타겟 뷰(서술자)와 깊이 스텐실 뷰(서술자) 를 출력-병합 단계에 연결한다 
+	m_pd3dCommandList->OMSetRenderTargets(1, &D3dRtvCPUDescriptorHandle, TRUE, &D3dDsvCPUDescriptorHandle);
 
 
 	/*
@@ -135,17 +212,68 @@ void Engine::Render(){
 	// 이제 SwapChain 을 Present한다. 렌더 타겟(후면 버퍼)의 내용이 전면 버퍼로 이동하고, 렌더 타겟 인덱스가 바뀔 것이다.
 	m_pdxgiSwapChain->Present(0, 0);
 
-	
+	// Discussion : 혹시 다른 의견이나 틀린점이 있다면 추가바람 
+	// 
+	// 이 함수가 하는 일은 사실 WaitforGPUComplete 와 비슷하다.
+	// 그 이유는 현재 시스템은 SwapChain 을 2개 즉 후면버퍼가 두개로 3중 버퍼링을 수행중이기 때문에
+	// 한번의 프레임 렌더링에 두번의 Buffer를 기다려야한다 
+	// 참고자료 : https://www.3dgep.com/wp-content/uploads/2017/11/GPU-Synchronization.png
+	// 쉽게 생각해서 한번의 렌더링 과정 중에 모든 swapchain이 처리되어야 하므로,
+	// 두번 기다려주는것 
+
+
+	MovetoNextFrame();
 
 	m_timer->GetFrameRate(m_pszFrameRate + 10, 35);
-	::SetWindowText(m_hWnd, m_pszFrameRate);
+	::SetWindowText(hWnd, m_pszFrameRate);
 
 	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
 }
 
+void Engine::Update(){
+
+	m_timer->Tick(0.f);
+
+	INPUT->Update();
+
+
+
+}
+
+void Engine::LateUpdate(){
+}
+
+LRESULT __stdcall Engine::Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message){
+	case WM_COMMAND:
+	{
+		int wmId = LOWORD(wParam);
+		// 메뉴 선택을 구문 분석합니다:
+		switch (wmId)
+		{
+		case IDM_ABOUT:
+			break;
+		case IDM_EXIT:
+			DestroyWindow(hWnd);
+			break;
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		}
+	}
+	break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return 0;
+}
+
 void Engine::CreateSwapChain(){
 	RECT ClientRect{};
-	::GetClientRect(m_hWnd, &ClientRect);
+	::GetClientRect(hWnd, &ClientRect);
 
 
 	m_nWindowClientWidth = ClientRect.right - ClientRect.left;
@@ -162,7 +290,7 @@ void Engine::CreateSwapChain(){
 	DxgiSwapChainDesc.BufferDesc.Format						= DXGI_FORMAT_R8G8B8A8_UNORM;
 	DxgiSwapChainDesc.BufferUsage							= DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	DxgiSwapChainDesc.SwapEffect							= DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	DxgiSwapChainDesc.OutputWindow							= m_hWnd;
+	DxgiSwapChainDesc.OutputWindow							= hWnd;
 	DxgiSwapChainDesc.SampleDesc.Count						= (m_bMsaa4xEnable) ? 4 : 1;
 	DxgiSwapChainDesc.SampleDesc.Quality					= (m_bMsaa4xEnable) ? m_nMsaa4xQualityLevels - 1 : 0;
 	DxgiSwapChainDesc.Windowed								= true;
@@ -173,7 +301,7 @@ void Engine::CreateSwapChain(){
 	HRESULT hResult = m_pdxgiFactory->CreateSwapChain(m_pd3dCommandQueue, &DxgiSwapChainDesc, (IDXGISwapChain**)&m_pdxgiSwapChain);
 	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
 	// ALT+ENTER 가 작동하지 않도록 변경 
-	hResult = m_pdxgiFactory->MakeWindowAssociation(m_hWnd, DXGI_MWA_NO_ALT_ENTER);
+	hResult = m_pdxgiFactory->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
 
 #ifndef _WITH_SWAPCHAIN_FULLSCREEN_STATE
 	CreateRenderTargetView();
@@ -292,6 +420,7 @@ void Engine::CreateCommandQueueAndList(){
 	// 커맨드 리스트 생성 ( 명령을 직접 전달 )
 	hResult = m_pd3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pd3dCommandAllocator, NULL, __uuidof(ID3D12GraphicsCommandList), (void**)&m_pd3dCommandList);
 	
+
 	// 커맨드 리스트는 생성 시 열린 상태이므로( Open ) 닫아주어야 한다.  
 	hResult = m_pd3dCommandList->Close();
 }
@@ -352,15 +481,30 @@ void Engine::CreateDepthStencilView(){
 
 void Engine::WaitForGpuComplete(){
 	// CPU Fence 의 값을 증가시킨다
-	m_nFenceValue++;
-
 	// Gpu가 Fence의 값을 설정하는 명령을 큐에 추가한다. 
-	const UINT64 nFence = m_nFenceValue;
+	UINT64 nFence = ++m_nFenceValue[m_nSwapChainBufferIndex];
 	HRESULT hResult = m_pd3dCommandQueue->Signal(m_pd3dFence, nFence);
 
 	if (m_pd3dFence->GetCompletedValue() < nFence) {
 		//펜스의 현재 값이 CPU Fence 값 보다 작으면 펜스의 현재 값이 CPU Fence 값이 될 때까지 기다린다.
 		hResult = m_pd3dFence->SetEventOnCompletion(nFence, m_hFenceEvent);
+		::WaitForSingleObject(m_hFenceEvent, INFINITE);
+	}
+
+}
+
+
+
+
+void Engine::MovetoNextFrame(){
+	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
+
+	UINT64 FenceValue = ++m_nFenceValue[m_nSwapChainBufferIndex];
+	HRESULT hResult = m_pd3dCommandQueue->Signal(m_pd3dFence, FenceValue);
+
+		
+	if (m_pd3dFence->GetCompletedValue() < FenceValue) {
+		hResult = m_pd3dFence->SetEventOnCompletion(FenceValue, m_hFenceEvent);
 		::WaitForSingleObject(m_hFenceEvent, INFINITE);
 	}
 
