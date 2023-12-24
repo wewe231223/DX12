@@ -31,7 +31,6 @@ private:
 
 private:
 	static Input* m_instance;
-
 public:
 	static Input* GetInstance();
 
@@ -40,10 +39,15 @@ private:
 	KEY_STATE* m_keyboardState{ nullptr };
 
 
+	IDirectInput8W* m_pdirectInput{};
+	IDirectInputDevice8W* m_pkeyDevice{};
+	IDirectInputDevice8W* m_pmouseDevice{};
+
+
 public:
 	const KEY_STATE GetKey(int key) const;
 public:
-	void Init();
+	void Init(HWND hWnd,HINSTANCE Instance);
 	void Update();
 
 	bool m_notfired = true;
