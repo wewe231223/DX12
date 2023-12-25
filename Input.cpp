@@ -7,11 +7,12 @@ Input::Input() {
 }
 
 Input::~Input(){
-	if (m_keyboardState) {
-		delete[] m_keyboardState;
-	}
+	if (m_keyboardState) delete[] m_keyboardState;
 	m_keyboardState = nullptr;
 
+	if(m_mouseState) delete[] m_mouseState;
+	m_mouseState = nullptr;
+	
 	if (m_pmouseDevice) {
 		m_pmouseDevice->Unacquire();
 		m_pmouseDevice->Release();
@@ -24,72 +25,51 @@ Input::~Input(){
 		m_pkeyDevice = NULL;
 	}
 
-
 	if (m_pdirectInput) {
 		m_pdirectInput->Release();
 		m_pdirectInput = NULL;
 	}
-
 }
 
-const KEY_STATE Input::GetKey(int key) const
-{
-	return KEY_STATE();
+/// <summary>
+/// Get Key State
+/// </summary>
+/// <param name="key"> : Should DIK_... to Get Accurate Keystate</param>
+/// <returns>KEY_STATE enum</returns>
+const KEY_STATE Input::GetKey(int key) const{
+	return m_keyboardState[key];
 }
 
 void Input::Init(HWND hWnd, HINSTANCE Instance) {
-	m_instance->m_keyboardState = new KEY_STATE[256];
-
+	m_keyboardState = new KEY_STATE[256];
+	m_mouseState = new KEY_STATE[3];
 	for (auto i = 0; i < 256; ++i) {
-		m_instance->m_keyboardState[i] = KEY_STATE::NONE;
+		m_keyboardState[i] = KEY_STATE::NONE;
 	}
-
-
-
-
-
+	for (auto i = 0; i < 3; ++i) {
+		m_mouseState[i] = KEY_STATE::NONE;
+	}
 	HRESULT hr = S_OK;
 
-	if (FAILED(hr = DirectInput8Create(Instance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&m_pdirectInput, NULL))) {
-		printf("FAILED : Cannot Initialize DirectInput\n");
-		exit(-1);
-	}
-
-
-	if (FAILED(hr = m_pdirectInput->CreateDevice(GUID_SysKeyboard, &m_pkeyDevice, NULL))) {
-		printf("FAILED : Cannot Initialize Keyboard Device\n");
-		exit(-1);
-	}
+	ThrowIfFailed(hr = DirectInput8Create(Instance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&m_pdirectInput, NULL));
+	
+	ThrowIfFailed(hr = m_pdirectInput->CreateDevice(GUID_SysKeyboard, &m_pkeyDevice, NULL))
 	m_pkeyDevice->SetDataFormat(&c_dfDIKeyboard);
-	if (FAILED(hr = m_pkeyDevice->SetCooperativeLevel(hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND | DISCL_NOWINKEY))) {
-		printf("FAILED : Cannot Initialize Keyboard Device\n");
-		exit(-1);
-	}
+	ThrowIfFailed(hr = m_pkeyDevice->SetCooperativeLevel(hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND | DISCL_NOWINKEY));
 	while (m_pkeyDevice->Acquire() == DIERR_INPUTLOST);
 
-
-	if (FAILED(hr = m_pdirectInput->CreateDevice(GUID_SysMouse, &m_pmouseDevice, NULL))) {
-		printf("FAILED : Cannot Initialize Mouse Device\n");
-		exit(-1);
-	}
+	ThrowIfFailed(hr = m_pdirectInput->CreateDevice(GUID_SysMouse, &m_pmouseDevice, NULL));
 	m_pmouseDevice->SetDataFormat(&c_dfDIMouse);
-	if (FAILED(hr = m_pmouseDevice->SetCooperativeLevel(hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND ))) {
-		printf("FAILED : Cannot Initialize Mouse Device\n");
-		exit(-1);
-	}
+	ThrowIfFailed(hr = m_pmouseDevice->SetCooperativeLevel(hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND));
 	while (m_pmouseDevice->Acquire() == DIERR_INPUTLOST);
 }
-
 
 Input* Input::GetInstance(){
 	if (m_instance == nullptr) {
 		m_instance = new Input();
 	}
-
 	return m_instance;
-	
 }
-
 
 void Input::Update() {
 
@@ -117,7 +97,6 @@ void Input::Update() {
 		if (Keystate[i] & 0x80) {
 			if (m_keyboardState[i] == KEY_STATE::NONE or m_keyboardState[i] == KEY_STATE::RELEASE) {
 				m_keyboardState[i] = KEY_STATE::DOWN;
-				printf("%c\n", (char)i);
 			}
 			else if (m_keyboardState[i] == KEY_STATE::DOWN) {
 				m_keyboardState[i] = KEY_STATE::PRESS;
@@ -132,9 +111,39 @@ void Input::Update() {
 			}
 		}
 	}
-	
-	
+	/*
+	* 0 = Left Mouse Button 
+	* 1 = Right Mouse Button 
+	* 2 = Middle Mouse Button 
+	* 3 = Side Mouse Button( 하지만 이 키는 마우스별로 인식되는 버튼이 다를 수 있다. 따라서 이 키는 되도록 사용하지 말 것 ) 
+	*/
+	for (UINT i = 0; i < 4; ++i) {
+		if (Mousestate.rgbButtons[i] & 0x80) {
+			if (m_mouseState[i] == KEY_STATE::NONE or m_mouseState[i] == KEY_STATE::RELEASE) {
+				m_mouseState[i] = KEY_STATE::DOWN;
+				printf("%d = DOWN\n", i);
+			}
+			else if (m_mouseState[i] == KEY_STATE::DOWN) {
+				m_mouseState[i] = KEY_STATE::PRESS;
+				printf("%d = PRESS\n", i);
+			}
 
+			if (m_mouseState[i] == KEY_STATE::PRESS) {
+				printf("%d = PRESS\n", i);
+			}
+		}
+		else {
+			if (m_mouseState[i] == KEY_STATE::PRESS or m_mouseState[i] == KEY_STATE::DOWN) {
+				m_mouseState[i] = KEY_STATE::RELEASE;
+				printf("%d = RELEASE\n", i);
+			}
+			else if (m_mouseState[i] == KEY_STATE::RELEASE) {
+				m_mouseState[i] = KEY_STATE::NONE;
+			}
+		}
+	}
+	
+	
 
 }
 

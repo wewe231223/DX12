@@ -21,6 +21,13 @@ enum class KEY_STATE {
 	RELEASE
 };
 
+enum class MOUSE_BUTTON {
+	LEFT,
+	RIGHT,
+	MIDDLE,
+	SIDE
+};
+
 class Input {
 private:
 	Input();
@@ -37,7 +44,7 @@ public:
 private:
 
 	KEY_STATE* m_keyboardState{ nullptr };
-
+	KEY_STATE* m_mouseState{ nullptr };
 
 	IDirectInput8W* m_pdirectInput{};
 	IDirectInputDevice8W* m_pkeyDevice{};
