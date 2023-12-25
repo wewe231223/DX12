@@ -40,6 +40,14 @@ const KEY_STATE Input::GetKey(int key) const{
 	return m_keyboardState[key];
 }
 
+const KEY_STATE Input::GetMouseButton(int key) const{
+	return m_mouseState[key];
+}
+
+const KEY_STATE Input::GetMouseButton(MOUSE_BUTTON key) const{
+	return m_mouseState[static_cast<int>(key)];
+}
+
 void Input::Init(HWND hWnd, HINSTANCE Instance) {
 	m_keyboardState = new KEY_STATE[256];
 	m_mouseState = new KEY_STATE[3];
@@ -72,8 +80,6 @@ Input* Input::GetInstance(){
 }
 
 void Input::Update() {
-
-
 	BYTE Keystate[256]{};
 	DIMOUSESTATE Mousestate{};
 	HRESULT hr{};
@@ -81,13 +87,9 @@ void Input::Update() {
 	if (FAILED(hr = m_pkeyDevice->GetDeviceState(256, Keystate))) {
 		while (m_pkeyDevice->Acquire() == DIERR_INPUTLOST);
 	}
-
 	if (FAILED(hr = m_pmouseDevice->GetDeviceState(sizeof(DIMOUSESTATE), &Mousestate))) {
 		while (m_pmouseDevice->Acquire() == DIERR_INPUTLOST);
 	}
-
-
-
 	if (Keystate[DIK_ESCAPE] & 0x80) {
 		ProgramClose();
 	}
@@ -125,10 +127,6 @@ void Input::Update() {
 			}
 			else if (m_mouseState[i] == KEY_STATE::DOWN) {
 				m_mouseState[i] = KEY_STATE::PRESS;
-				printf("%d = PRESS\n", i);
-			}
-
-			if (m_mouseState[i] == KEY_STATE::PRESS) {
 				printf("%d = PRESS\n", i);
 			}
 		}
