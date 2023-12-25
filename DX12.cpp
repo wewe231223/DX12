@@ -19,9 +19,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
     std::cout << "Hello World" << std::endl;
     engine = std::make_unique<Engine>();
-    engine->Initialize(hInstance, nCmdShow);
-    engine->Loop();
-    engine->Terminate();
+    try {
+        engine->Initialize(hInstance, nCmdShow);
+        engine->Loop();
+        engine->Terminate();
+    }
+    catch (DxException& e) {
+        MessageBox(nullptr, e.ToString().c_str(), L"Failed!", MB_OK);
+    }
     return 0;
 }
 
