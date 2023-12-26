@@ -50,6 +50,9 @@ private:
 	IDirectInputDevice8W* m_pkeyDevice{};
 	IDirectInputDevice8W* m_pmouseDevice{};
 
+	LONG m_nDeltaMouseX{};
+	LONG m_nDeltaMouseY{};
+
 
 public:
 	const KEY_STATE GetKey(int key) const;

@@ -22,6 +22,8 @@ public:
 	void Render(ID3D12GraphicsCommandList* pd3dCommandList);
 
 
-
+	ID3D12RootSignature* GetGraphicsRootSignature();
+private:
+	ID3D12RootSignature* CreateGraphicsRootSignature(ID3D12Device* pd3dDevice);
 };
 

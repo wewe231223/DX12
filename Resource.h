@@ -16,6 +16,10 @@
 #ifndef IDC_STATIC
 #define IDC_STATIC				-1
 #endif
+
+#define MOUSE_CLIPED 1
+#define MOUSE_HIDED 1
+
 // 다음은 새 개체에 사용할 기본값입니다.
 //
 #ifdef APSTUDIO_INVOKED
