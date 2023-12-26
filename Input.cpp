@@ -143,10 +143,11 @@ void Input::Update() {
 	
 	/*
 	* 위에서 아래로 Y+ 아래에서 위로 Y-
-	* 왼쪽
+	* 왼쪽에서 오른쪽으로 X+ 오른쪽에서 왼쪽으로 X-
 	*/
-	printf("%d %d %d\n", Mousestate.lX, Mousestate.lY, Mousestate.lZ);
 	
+	m_nDeltaMouseX = Mousestate.lX;
+	m_nDeltaMouseY = Mousestate.lY;
 
 }
 
