@@ -83,9 +83,7 @@ private:
 
 	std::unique_ptr<Timer> m_timer{};
 
-
-
-
+	bool m_bRunning{ true };
 public:
 
 	Engine();
@@ -95,6 +93,7 @@ public:
 	bool Initialize(HINSTANCE Instance);
 	void Terminate();
 	void Loop();
+	void Close();
 
 	void Render();
 	void Update();

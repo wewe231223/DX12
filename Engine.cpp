@@ -91,6 +91,7 @@ bool Engine::Initialize(HINSTANCE Instance) {
 }
 
 void Engine::Terminate(){
+	Close();
 	::CloseHandle(m_hFenceEvent);
 #if defined(_DEBUG)	
 	if (m_pd3dDebugController) m_pd3dDebugController->Release();
@@ -114,6 +115,9 @@ void Engine::Terminate(){
 	if (m_pdxgiFactory)		m_pdxgiFactory->Release();
 	if (m_pd3dDevice)		m_pd3dDevice->Release();
 	
+
+	PostQuitMessage(0);
+	DestroyWindow(hWnd);
 	if (MOUSE_CLIPED) ::ClipCursor(NULL);
 }
 
@@ -122,8 +126,7 @@ void Engine::Loop(){
 	MSG message{};
 
 
-	while (true) {
-
+	while (m_bRunning) {
 		if (::PeekMessage(&message, NULL, 0, 0, PM_REMOVE)){
 			if (message.message == WM_QUIT) break;
 			if (!::TranslateAccelerator(message.hwnd, hAccelTable, &message)){
@@ -134,16 +137,13 @@ void Engine::Loop(){
 		else{
 			// Game Loop 
 			Update();
-
-
 			Render();
 		}
-
-
 	}
+}
 
-
-
+void Engine::Close(){
+	m_bRunning = false;
 }
 
 void Engine::Render(){
@@ -275,19 +275,16 @@ LRESULT CALLBACK Engine::Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 	}
-	break;
-	case WM_SIZE:
+	case WM_ACTIVATE:
 		MouseClip();
-		printf("Resize\n");
 		break;
 	case WM_MOVE:
 		MouseClip();
-		printf("Move\n");
 		break;
-	case WM_ACTIVATE:
+	case WM_SIZE:
 		MouseClip();
-		printf("Active\n");
 		break;
+	break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
@@ -562,6 +559,7 @@ LRESULT Engine::OnProcessWindowMessage(HWND hWnd, UINT message, WPARAM wParam, L
 }
 
 void MouseClip(){
+	if (!MOUSE_CLIPED) return;
 	RECT ClientRect{};
 	::GetClientRect(hWnd, &ClientRect);
 	POINT LeftTop{ ClientRect.left,ClientRect.top };

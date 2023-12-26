@@ -141,6 +141,11 @@ void Input::Update() {
 		}
 	}
 	
+	/*
+	* 위에서 아래로 Y+ 아래에서 위로 Y-
+	* 왼쪽
+	*/
+	printf("%d %d %d\n", Mousestate.lX, Mousestate.lY, Mousestate.lZ);
 	
 
 }
