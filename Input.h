@@ -21,6 +21,13 @@ enum class KEY_STATE {
 	RELEASE
 };
 
+enum class MOUSE_BUTTON {
+	LEFT,
+	RIGHT,
+	MIDDLE,
+	SIDE
+};
+
 class Input {
 private:
 	Input();
@@ -37,15 +44,20 @@ public:
 private:
 
 	KEY_STATE* m_keyboardState{ nullptr };
-
+	KEY_STATE* m_mouseState{ nullptr };
 
 	IDirectInput8W* m_pdirectInput{};
 	IDirectInputDevice8W* m_pkeyDevice{};
 	IDirectInputDevice8W* m_pmouseDevice{};
 
+	LONG m_nDeltaMouseX{};
+	LONG m_nDeltaMouseY{};
+
 
 public:
 	const KEY_STATE GetKey(int key) const;
+	const KEY_STATE GetMouseButton(int key) const;
+	const KEY_STATE GetMouseButton(MOUSE_BUTTON key) const;
 public:
 	void Init(HWND hWnd,HINSTANCE Instance);
 	void Update();

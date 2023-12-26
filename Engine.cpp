@@ -22,8 +22,7 @@ Engine::Engine(){
 Engine::~Engine(){
 }
 
-bool Engine::Initialize(HINSTANCE Instance,int Cmd) {
-
+bool Engine::Initialize(HINSTANCE Instance) {
 	WCHAR Windowclass[100]{};
 	WCHAR WindowTitle[100]{};
 	LoadStringW(m_hInstance, IDC_DX12, Windowclass, 100);
@@ -52,17 +51,17 @@ bool Engine::Initialize(HINSTANCE Instance,int Cmd) {
 
 	RegisterClassExW(&wcex);
 
-	hWnd = CreateWindowW(Windowclass, WindowTitle, WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, Instance, nullptr);
+	hWnd = CreateWindowW(Windowclass, WindowTitle, 
+		WS_OVERLAPPEDWINDOW,
+		200, 200,
+		FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT, 
+		nullptr, nullptr, 
+		Instance, nullptr);
 	
 
 	if (!hWnd) {
 		exit(EXIT_FAILURE);
 	}
-
-
-	::ShowWindow(hWnd, Cmd);
-	::UpdateWindow(hWnd);
 
 
 
@@ -76,13 +75,25 @@ bool Engine::Initialize(HINSTANCE Instance,int Cmd) {
 	m_timer = std::make_unique<Timer>();
 	INPUT->Init(hWnd,m_hInstance);
 
+	// ShowCursor 함수는 false 로 실행한 만큼 true 해줘야 함
+	if(MOUSE_HIDED) ::ShowCursor(false);
+
+	if (MOUSE_CLIPED) ::MouseClip();
+	
+
+
+
+	::ShowWindow(hWnd, SW_SHOW);
+	::UpdateWindow(hWnd);
+
 
 	return false;
 }
 
 void Engine::Terminate(){
+	Close();
 	::CloseHandle(m_hFenceEvent);
-#if defined(_DEBUG)
+#if defined(_DEBUG)	
 	if (m_pd3dDebugController) m_pd3dDebugController->Release();
 #endif
 	for (int i = 0; i < m_nSwapChainBuffersNumber; i++)
@@ -104,6 +115,10 @@ void Engine::Terminate(){
 	if (m_pdxgiFactory)		m_pdxgiFactory->Release();
 	if (m_pd3dDevice)		m_pd3dDevice->Release();
 	
+
+	PostQuitMessage(0);
+	DestroyWindow(hWnd);
+	if (MOUSE_CLIPED) ::ClipCursor(NULL);
 }
 
 void Engine::Loop(){
@@ -111,8 +126,7 @@ void Engine::Loop(){
 	MSG message{};
 
 
-	while (true) {
-
+	while (m_bRunning) {
 		if (::PeekMessage(&message, NULL, 0, 0, PM_REMOVE)){
 			if (message.message == WM_QUIT) break;
 			if (!::TranslateAccelerator(message.hwnd, hAccelTable, &message)){
@@ -123,23 +137,23 @@ void Engine::Loop(){
 		else{
 			// Game Loop 
 			Update();
-
-
 			Render();
 		}
-
-
 	}
+}
 
-
-
+void Engine::Close(){
+	m_bRunning = false;
 }
 
 void Engine::Render(){
 	// 명령 할당자와 명령 리스트를 초기화한다 
 	// => 이전 프레임의 그리기 명령과 그 명령 할당자를 초기화 해야 한다 
 	HRESULT hResult = m_pd3dCommandAllocator->Reset();
+	ThrowIfFailed(hResult);
+	
 	hResult = m_pd3dCommandList->Reset(m_pd3dCommandAllocator, NULL);
+	ThrowIfFailed(hResult);
 
 	D3D12_RESOURCE_BARRIER D3dResourceBarrier;
 	::ZeroMemory(&D3dResourceBarrier, sizeof(D3D12_RESOURCE_BARRIER));
@@ -200,7 +214,7 @@ void Engine::Render(){
 
 	// 명령 리스트도 닫아준다 
 	hResult = m_pd3dCommandList->Close();
-
+	ThrowIfFailed(hResult);
 	// 명령 리스트를 이제 명령 큐에 한번에 넘겨준다 
 	ID3D12CommandList* pD3dCommandLists[] = { m_pd3dCommandList };
 	m_pd3dCommandQueue->ExecuteCommandLists(1, pD3dCommandLists);
@@ -243,7 +257,7 @@ void Engine::Update(){
 void Engine::LateUpdate(){
 }
 
-LRESULT __stdcall Engine::Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK Engine::Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message){
 	case WM_COMMAND:
@@ -261,6 +275,15 @@ LRESULT __stdcall Engine::Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 	}
+	case WM_ACTIVATE:
+		MouseClip();
+		break;
+	case WM_MOVE:
+		MouseClip();
+		break;
+	case WM_SIZE:
+		MouseClip();
+		break;
 	break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
@@ -274,7 +297,7 @@ LRESULT __stdcall Engine::Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 void Engine::CreateSwapChain(){
 	RECT ClientRect{};
 	::GetClientRect(hWnd, &ClientRect);
-
+	
 
 	m_nWindowClientWidth = ClientRect.right - ClientRect.left;
 	// 윈도우 좌표계 기준이므로, bottom > top 이다 
@@ -299,9 +322,13 @@ void Engine::CreateSwapChain(){
 	DxgiSwapChainDesc.Flags									= DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	// SwapChain 생성 
 	HRESULT hResult = m_pdxgiFactory->CreateSwapChain(m_pd3dCommandQueue, &DxgiSwapChainDesc, (IDXGISwapChain**)&m_pdxgiSwapChain);
+	ThrowIfFailed(hResult);
+
 	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
 	// ALT+ENTER 가 작동하지 않도록 변경 
 	hResult = m_pdxgiFactory->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
+	ThrowIfFailed(hResult);
+
 
 #ifndef _WITH_SWAPCHAIN_FULLSCREEN_STATE
 	CreateRenderTargetView();
@@ -389,6 +416,7 @@ void Engine::CreateRenderTargetAndDepthStencilDescriptorHeaps(){
 
 	// RenderTarget 서술자 힙 생성 
 	HRESULT hResult = m_pd3dDevice->CreateDescriptorHeap(&D3dDescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&m_pd3dRtvDescriptiorHeap);
+	ThrowIfFailed(hResult);
 	// 서술자 힙의 원소 개수를 가져온다 
 	m_nRtvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
@@ -399,7 +427,8 @@ void Engine::CreateRenderTargetAndDepthStencilDescriptorHeaps(){
 	
 	// 깊이 스텐실 서술자 힙 생성 
 	hResult = m_pd3dDevice->CreateDescriptorHeap(&D3dDescriptorHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&m_pd3dDsvDescriptorHeap);
-	
+	ThrowIfFailed(hResult);
+
 	m_nDsvDescriptorIncrementSize = m_pd3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);	
 
 
@@ -413,16 +442,19 @@ void Engine::CreateCommandQueueAndList(){
 	D3dCommandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	// 커맨드 큐를 작성 
 	HRESULT hResult = m_pd3dDevice->CreateCommandQueue(&D3dCommandQueueDesc, __uuidof(ID3D12CommandQueue), (void**)&m_pd3dCommandQueue);
+	ThrowIfFailed(hResult);
 
 	// 커맨드 명령 하달자 생성 ( 명령을 직접 전달 )
 	hResult = m_pd3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void**)&m_pd3dCommandAllocator);
-	
+	ThrowIfFailed(hResult);
+
 	// 커맨드 리스트 생성 ( 명령을 직접 전달 )
 	hResult = m_pd3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_pd3dCommandAllocator, NULL, __uuidof(ID3D12GraphicsCommandList), (void**)&m_pd3dCommandList);
-	
+	ThrowIfFailed(hResult);
 
 	// 커맨드 리스트는 생성 시 열린 상태이므로( Open ) 닫아주어야 한다.  
 	hResult = m_pd3dCommandList->Close();
+	ThrowIfFailed(hResult);
 }
 
 void Engine::CreateRenderTargetView(){
@@ -430,6 +462,7 @@ void Engine::CreateRenderTargetView(){
 
 	for (UINT i = 0; i < m_nSwapChainBuffersNumber; ++i) {
 		HRESULT hResult = m_pdxgiSwapChain->GetBuffer(i, __uuidof(ID3D12Resource), (void**)&m_pd3dRenderTargetBuffers[i]);
+		ThrowIfFailed(hResult);
 		m_pd3dDevice->CreateRenderTargetView(m_pd3dRenderTargetBuffers[i], NULL, D3dRtvCPUDescriptorHandle);
 		D3dRtvCPUDescriptorHandle.ptr += m_nRtvDescriptorIncrementSize;
 	}
@@ -484,16 +517,16 @@ void Engine::WaitForGpuComplete(){
 	// Gpu가 Fence의 값을 설정하는 명령을 큐에 추가한다. 
 	UINT64 nFence = ++m_nFenceValue[m_nSwapChainBufferIndex];
 	HRESULT hResult = m_pd3dCommandQueue->Signal(m_pd3dFence, nFence);
+	ThrowIfFailed(hResult);
 
 	if (m_pd3dFence->GetCompletedValue() < nFence) {
 		//펜스의 현재 값이 CPU Fence 값 보다 작으면 펜스의 현재 값이 CPU Fence 값이 될 때까지 기다린다.
 		hResult = m_pd3dFence->SetEventOnCompletion(nFence, m_hFenceEvent);
+		ThrowIfFailed(hResult);
 		::WaitForSingleObject(m_hFenceEvent, INFINITE);
 	}
 
 }
-
-
 
 
 void Engine::MovetoNextFrame(){
@@ -501,10 +534,11 @@ void Engine::MovetoNextFrame(){
 
 	UINT64 FenceValue = ++m_nFenceValue[m_nSwapChainBufferIndex];
 	HRESULT hResult = m_pd3dCommandQueue->Signal(m_pd3dFence, FenceValue);
-
+	ThrowIfFailed(hResult);
 		
 	if (m_pd3dFence->GetCompletedValue() < FenceValue) {
 		hResult = m_pd3dFence->SetEventOnCompletion(FenceValue, m_hFenceEvent);
+		ThrowIfFailed(hResult);
 		::WaitForSingleObject(m_hFenceEvent, INFINITE);
 	}
 
@@ -524,3 +558,17 @@ LRESULT Engine::OnProcessWindowMessage(HWND hWnd, UINT message, WPARAM wParam, L
 	return LRESULT();
 }
 
+void MouseClip(){
+	if (!MOUSE_CLIPED) return;
+	RECT ClientRect{};
+	::GetClientRect(hWnd, &ClientRect);
+	POINT LeftTop{ ClientRect.left,ClientRect.top };
+	POINT RightBottom{ ClientRect.right,ClientRect.bottom };
+	::ClientToScreen(hWnd, &LeftTop);
+	::ClientToScreen(hWnd, &RightBottom);
+	ClientRect.left = LeftTop.x;
+	ClientRect.top = LeftTop.y;
+	ClientRect.right = RightBottom.x;
+	ClientRect.bottom = RightBottom.y;
+	::ClipCursor(&ClientRect);
+}

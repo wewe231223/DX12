@@ -63,7 +63,7 @@ void Timer::Tick(float LockFPS){
 		m_framePerSecondTimeElapsed = 0.f;
 	}
 	// 처리 시간 평균 계산 
-	m_timeElapsed = favgf(m_frameTime, m_sampleCount);
+	m_timeElapsed = Math::favgf(m_frameTime, m_sampleCount);
 }
 
 ULONG Timer::GetFrameRate(LPTSTR lpszString, int CharacterNumbers){

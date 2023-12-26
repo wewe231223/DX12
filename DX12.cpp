@@ -4,10 +4,10 @@
 #include "DX12.h"
 #include "Engine.h"
 std::unique_ptr<Engine> engine{ nullptr };
+#define PAUSE system("pause");
 
 void ProgramClose(){
-    engine->Terminate();
-    exit(0);
+    engine->Close();
 }
 
 
@@ -19,9 +19,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
     std::cout << "Hello World" << std::endl;
     engine = std::make_unique<Engine>();
-    engine->Initialize(hInstance, nCmdShow);
-    engine->Loop();
-    engine->Terminate();
+    try {
+        engine->Initialize(hInstance);
+        engine->Loop();
+        engine->Terminate();
+    }
+    catch (DxException& e) {
+        MessageBox(nullptr, e.ToString().c_str(), L"Failed!", MB_OK);
+    }
+    PAUSE;
     return 0;
 }
 
