@@ -92,7 +92,7 @@ public:
 	~Engine();
 
 	// Create Engine( DX12 Device ) 
-	bool Initialize(HINSTANCE Instance,int Cmd);
+	bool Initialize(HINSTANCE Instance);
 	void Terminate();
 	void Loop();
 
@@ -102,7 +102,7 @@ public:
 
 public:
 
-	static LRESULT __stdcall Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+	static LRESULT CALLBACK Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 private:
 	// Device Initialize 
@@ -124,6 +124,7 @@ private:
 	void OnProcessMouseMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	void OnProcessKeyboardMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	LRESULT CALLBACK OnProcessWindowMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
 };
 
+
+void MouseClip();

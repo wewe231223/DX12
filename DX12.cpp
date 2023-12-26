@@ -20,7 +20,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     std::cout << "Hello World" << std::endl;
     engine = std::make_unique<Engine>();
     try {
-        engine->Initialize(hInstance, nCmdShow);
+        engine->Initialize(hInstance);
         engine->Loop();
         engine->Terminate();
     }

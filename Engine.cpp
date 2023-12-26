@@ -22,7 +22,7 @@ Engine::Engine(){
 Engine::~Engine(){
 }
 
-bool Engine::Initialize(HINSTANCE Instance,int Cmd) {
+bool Engine::Initialize(HINSTANCE Instance) {
 	WCHAR Windowclass[100]{};
 	WCHAR WindowTitle[100]{};
 	LoadStringW(m_hInstance, IDC_DX12, Windowclass, 100);
@@ -64,10 +64,6 @@ bool Engine::Initialize(HINSTANCE Instance,int Cmd) {
 	}
 
 
-	::ShowWindow(hWnd, Cmd);
-	::UpdateWindow(hWnd);
-
-
 
 	CreateDirect3DDevice();
 	CreateCommandQueueAndList();
@@ -79,13 +75,24 @@ bool Engine::Initialize(HINSTANCE Instance,int Cmd) {
 	m_timer = std::make_unique<Timer>();
 	INPUT->Init(hWnd,m_hInstance);
 
+	// ShowCursor 함수는 false 로 실행한 만큼 true 해줘야 함
+	if(MOUSE_HIDED) ::ShowCursor(false);
+
+	if (MOUSE_CLIPED) ::MouseClip();
+	
+
+
+
+	::ShowWindow(hWnd, SW_SHOW);
+	::UpdateWindow(hWnd);
+
 
 	return false;
 }
 
 void Engine::Terminate(){
 	::CloseHandle(m_hFenceEvent);
-#if defined(_DEBUG)
+#if defined(_DEBUG)	
 	if (m_pd3dDebugController) m_pd3dDebugController->Release();
 #endif
 	for (int i = 0; i < m_nSwapChainBuffersNumber; i++)
@@ -107,6 +114,7 @@ void Engine::Terminate(){
 	if (m_pdxgiFactory)		m_pdxgiFactory->Release();
 	if (m_pd3dDevice)		m_pd3dDevice->Release();
 	
+	if (MOUSE_CLIPED) ::ClipCursor(NULL);
 }
 
 void Engine::Loop(){
@@ -249,7 +257,7 @@ void Engine::Update(){
 void Engine::LateUpdate(){
 }
 
-LRESULT __stdcall Engine::Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK Engine::Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message){
 	case WM_COMMAND:
@@ -268,6 +276,18 @@ LRESULT __stdcall Engine::Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 		}
 	}
 	break;
+	case WM_SIZE:
+		MouseClip();
+		printf("Resize\n");
+		break;
+	case WM_MOVE:
+		MouseClip();
+		printf("Move\n");
+		break;
+	case WM_ACTIVATE:
+		MouseClip();
+		printf("Active\n");
+		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
@@ -280,7 +300,7 @@ LRESULT __stdcall Engine::Proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 void Engine::CreateSwapChain(){
 	RECT ClientRect{};
 	::GetClientRect(hWnd, &ClientRect);
-
+	
 
 	m_nWindowClientWidth = ClientRect.right - ClientRect.left;
 	// 윈도우 좌표계 기준이므로, bottom > top 이다 
@@ -512,8 +532,6 @@ void Engine::WaitForGpuComplete(){
 }
 
 
-
-
 void Engine::MovetoNextFrame(){
 	m_nSwapChainBufferIndex = m_pdxgiSwapChain->GetCurrentBackBufferIndex();
 
@@ -543,3 +561,16 @@ LRESULT Engine::OnProcessWindowMessage(HWND hWnd, UINT message, WPARAM wParam, L
 	return LRESULT();
 }
 
+void MouseClip(){
+	RECT ClientRect{};
+	::GetClientRect(hWnd, &ClientRect);
+	POINT LeftTop{ ClientRect.left,ClientRect.top };
+	POINT RightBottom{ ClientRect.right,ClientRect.bottom };
+	::ClientToScreen(hWnd, &LeftTop);
+	::ClientToScreen(hWnd, &RightBottom);
+	ClientRect.left = LeftTop.x;
+	ClientRect.top = LeftTop.y;
+	ClientRect.right = RightBottom.x;
+	ClientRect.bottom = RightBottom.y;
+	::ClipCursor(&ClientRect);
+}
